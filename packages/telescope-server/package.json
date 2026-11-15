@@ -1,6 +1,6 @@
 {
   "name": "@adonis-agora/telescope-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A central Telescope server for AdonisJS: every app sends its Telescope entries to one server (batched, buffered, retried), and the console shows them per app. Part of the Agora ecosystem.",
   "license": "MIT",
   "repository": {

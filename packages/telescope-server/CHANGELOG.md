@@ -1,5 +1,11 @@
 # @adonis-agora/telescope-server
 
+## 0.1.1
+
+### Patch Changes
+
+- [#2](https://github.com/DavideCarvalho/adonis-agora-telescope-server/pull/2) [`ed2e15e`](https://github.com/DavideCarvalho/adonis-agora-telescope-server/commit/ed2e15e3df6c7e236956112748afa7cd814845e7) Thanks [@DavideCarvalho](https://github.com/DavideCarvalho)! - Deprecated: the central server moved into `@adonis-agora/telescope` (`topology: 'control-plane' | 'tenant'` in `config/telescope.ts`). See https://davidecarvalho.github.io/agora/docs/telescope/concepts/central-server.
+
 ## 0.1.0
 
 ### Minor Changes
