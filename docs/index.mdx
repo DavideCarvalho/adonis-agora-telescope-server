@@ -1,0 +1,170 @@
+---
+title: Telescope server
+description: Several AdonisJS apps send their Telescope entries to one server, and that server's console shows them per app.
+icon: Radar
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+`@adonis-agora/telescope-server` runs one Telescope for many apps. Each **app** sends the entries
+its Telescope records to the **server**. The server stores them, tagged with the name of the app
+that sent them, and its console gets an **App** picker for choosing which app to look at.
+
+```sh
+node ace add @adonis-agora/telescope-server
+```
+
+- An app keeps recording as usual. Its entries are sent in batches in the background, so a request
+  never waits on the server. If the server is down they wait in a bounded buffer and are retried.
+- The server learns which app sent an entry from that app's token, never from the request.
+- An app that does not install this package keeps its own Telescope, unchanged.
+
+## End to end: authkit, a Telescope server and two apps
+
+Four AdonisJS apps:
+
+| App | Runs | Role |
+| --- | --- | --- |
+| `auth.example.com` | `@adonis-agora/authkit-server` | issues the tokens |
+| `telescope.example.com` | `@adonis-agora/telescope` + `telescope-ui` + this package | stores every app's entries, hosts the console |
+| `shop.example.com` | `@adonis-agora/telescope` + this package | sends its entries |
+| `billing.example.com` | `@adonis-agora/telescope` + this package | sends its entries |
+
+### 1. On the authkit server: the resource and one client per app
+
+Declare the Telescope server as a service-tenant resource:
+
+```ts title="config/authkit.ts"
+defineConfig({
+  // ...
+  serviceTenants: {
+    resources: { 'urn:agora:telescope': {} },
+  },
+})
+```
+
+Then create one service-tenant client per app. The `partition` is the app name the console
+shows:
+
+```sh
+node ace authkit:client create --client-id=shop --partition=shop --capability=telescope:ingest
+node ace authkit:client create --client-id=billing --partition=billing --capability=telescope:ingest
+```
+
+A client that already holds other resources (`urn:agora:flags`, `urn:agora:durable`, …) can
+take this one too: one client per app, not per product.
+
+### 2. The Telescope server
+
+```ts title="config/telescope_server.ts"
+import env from '#start/env'
+import { authkitTenantVerifier } from '@adonis-agora/authkit-client'
+import { defineConfig } from '@adonis-agora/telescope-server'
+
+export default defineConfig({
+  topology: 'control-plane',
+  verifyTenant: authkitTenantVerifier({
+    issuer: env.get('AUTHKIT_ISSUER'), // https://auth.example.com
+    resource: 'urn:agora:telescope',
+  }),
+})
+```
+
+```ts title="config/telescope.ts"
+import { defineConfig, storage } from '@adonis-agora/telescope'
+
+export default defineConfig({
+  store: 'lucid',
+  stores: { lucid: storage.lucid() },
+  // This server only receives entries and serves the console: its own requests are noise.
+  watchers: ['diagnostics'],
+  prune: { after: '7d' },
+})
+```
+
+```ts title="config/shield.ts"
+import { telescopeServerCsrfExceptions } from '@adonis-agora/telescope-server'
+
+csrf: {
+  enabled: true,
+  exceptRoutes: (ctx) => telescopeServerCsrfExceptions(ctx.request.url()),
+},
+```
+
+The console is gated as usual. Here staff sign in through authkit and see every app:
+
+```ts title="config/telescope_ui.ts"
+import { authkitDashboardAuthorize } from '@adonis-agora/authkit-client'
+import { defineConfig } from '@adonis-agora/telescope/ui'
+
+export default defineConfig({
+  authorize: authkitDashboardAuthorize(),
+  apps: { labels: { shop: 'Shop', billing: 'Billing' } },
+})
+```
+
+### 3. Each app
+
+```ts title="config/telescope_server.ts (in the shop app)"
+import env from '#start/env'
+import { authkitTenantToken } from '@adonis-agora/authkit-client'
+import { defineConfig } from '@adonis-agora/telescope-server'
+
+export default defineConfig({
+  topology: 'tenant',
+  tenant: {
+    url: env.get('TELESCOPE_SERVER_URL'), // https://telescope.example.com
+    partition: 'shop',
+    token: authkitTenantToken({
+      issuer: env.get('AUTHKIT_ISSUER'),
+      clientId: env.get('TELESCOPE_CLIENT_ID'),
+      clientSecret: env.get('TELESCOPE_CLIENT_SECRET'),
+      resource: 'urn:agora:telescope',
+    }),
+  },
+})
+```
+
+```ts title="config/telescope.ts (in the shop app)"
+import { defineConfig, storage } from '@adonis-agora/telescope'
+import { remoteStore } from '@adonis-agora/telescope-server'
+
+export default defineConfig({
+  store: 'central',
+  stores: {
+    // Send everything to the server, and keep the last 500 entries for this app's own console.
+    central: remoteStore({ tee: storage.memory({ maxEntries: 500 }) }),
+  },
+})
+```
+
+The billing app is the same, with `partition: 'billing'` and its own client.
+
+### 4. The console
+
+Open `https://telescope.example.com/telescope`. The header has an **App** control next to
+**Organization**. **All apps** shows everything, with an **App** column in the entries table, and
+picking **Shop** narrows every screen to the shop app: entries, traces, exceptions, Pulse and the
+live tail. The choice is in the URL (`?app=shop`), so you can share the link.
+
+To limit who sees which app, return `apps` from the console's `authorize`:
+
+```ts title="app/policies/telescope_access.ts"
+import type { HttpContext } from '@adonisjs/core/http'
+import type { ConsoleAuthorizer } from '@adonis-agora/telescope/ui'
+
+export default class TelescopeAccess implements ConsoleAuthorizer {
+  async authorize(ctx: HttpContext) {
+    const user = ctx.auth.user
+    if (!user) return { redirectTo: '/login' }
+    if (user.isStaff) return { allowed: true, apps: '*' as const }
+    if (user.team === 'shop') return { allowed: true, apps: ['shop'] }
+    return false
+  }
+}
+```
+
+<Callout type="info">
+Check the setup from each app with `node ace telescope-server:status`. It says whether the server
+accepts the app's token, and under which name.
+</Callout>

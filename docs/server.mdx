@@ -1,0 +1,99 @@
+---
+title: The server
+description: Receive every app's entries and store them in this server's Telescope.
+icon: Server
+---
+
+The server is an AdonisJS app running `@adonis-agora/telescope` (with the console from
+`@adonis-agora/telescope-ui`) and this package, with `topology: 'control-plane'`:
+
+```ts title="config/telescope_server.ts"
+import env from '#start/env'
+import { authkitTenantVerifier } from '@adonis-agora/authkit-client'
+import { defineConfig } from '@adonis-agora/telescope-server'
+
+export default defineConfig({
+  topology: 'control-plane',
+  verifyTenant: authkitTenantVerifier({
+    issuer: env.get('AUTHKIT_ISSUER'),
+    resource: 'urn:agora:telescope',
+  }),
+})
+```
+
+It answers on `POST /_telescope/v1/ingest`. Each entry it receives goes into the store configured
+in `config/telescope.ts` with the tag `app:<name>`. If the token carries an environment, the entry
+also gets `env:<environment>`. The name and the environment come from the token. App tags an
+entry already carries are dropped and replaced, so an app cannot write as another one.
+
+## Who may send
+
+`verifyTenant` takes any of these forms:
+
+```ts
+// authkit, on any server
+verifyTenant: authkitTenantVerifier({ issuer, resource: 'urn:agora:telescope' }),
+
+// without authkit: one secret per app
+verifyTenant: sharedSecretVerifier({
+  partitions: {
+    shop: env.get('TELESCOPE_SECRET_SHOP'),
+    billing: { secret: env.get('TELESCOPE_SECRET_BILLING'), environment: 'production' },
+  },
+}),
+
+// your own: a function, a class instance, or a lazy import
+verifyTenant: () => import('#auth/telescope_verifier'),
+```
+
+A verifier returns `{ partition, environment?, capabilities }` or `null`. Sending needs the
+`telescope:ingest` capability (or `telescope:*`). `sharedSecretVerifier` grants it by default.
+
+| Answer | When |
+| --- | --- |
+| `202 { accepted, duplicates, rejected }` | the batch was read; invalid entries are counted in `rejected` |
+| `401` | no token, or a token that does not verify |
+| `403` | a valid token without `telescope:ingest` |
+| `413` | more entries or bytes than the limits allow |
+| `503` | Telescope is not running, or the issuer cannot be reached |
+
+Entries keep the time the app recorded them; a time more than five minutes ahead of the server's
+clock is taken as now. A batch sent twice is stored once: each entry is stored as `<app>:<id>`,
+and an id the store already holds is skipped, even after a restart.
+
+## CSRF
+
+Apps post without a CSRF token, so exempt the route:
+
+```ts title="config/shield.ts"
+import { telescopeServerCsrfExceptions } from '@adonis-agora/telescope-server'
+
+csrf: {
+  enabled: true,
+  exceptRoutes: (ctx) => telescopeServerCsrfExceptions(ctx.request.url()),
+},
+```
+
+## Limits
+
+```ts title="config/telescope_server.ts"
+export default defineConfig({
+  topology: 'control-plane',
+  verifyTenant,
+  ingest: {
+    path: '/_telescope/v1',  // the route is <path>/ingest
+    maxEntries: 1000,        // per batch
+    maxBodyBytes: 2_000_000, // per request
+    maxEntryBytes: 256_000,  // per entry; larger ones are rejected
+    dedupeWindow: 100_000,   // recent entry ids remembered per app
+  },
+})
+```
+
+Keep `bodyparser.json.limit` in `config/bodyparser.ts` at least as large as `maxBodyBytes`.
+
+## Who sees which app
+
+The console's `authorize` decides, with `apps: '*' | string[]` next to `tenants`. Labels for the
+App picker go in `telescope_ui.apps.labels`. See [Apps](https://github.com/DavideCarvalho/adonis-agora-telescope/blob/master/docs/concepts/apps.mdx)
+in the Telescope docs.

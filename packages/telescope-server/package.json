@@ -1,0 +1,89 @@
+{
+  "name": "@adonis-agora/telescope-server",
+  "version": "0.0.0",
+  "description": "A central Telescope server for AdonisJS: every app sends its Telescope entries to one server (batched, buffered, retried), and the console shows them per app. Part of the Agora ecosystem.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DavideCarvalho/adonis-agora-telescope-server.git",
+    "directory": "packages/telescope-server"
+  },
+  "homepage": "https://github.com/DavideCarvalho/adonis-agora-telescope-server#readme",
+  "bugs": {
+    "url": "https://github.com/DavideCarvalho/adonis-agora-telescope-server/issues"
+  },
+  "keywords": [
+    "adonisjs",
+    "adonis",
+    "telescope",
+    "observability",
+    "agora"
+  ],
+  "author": "Davi Carvalho <davi@goflip.ai>",
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    },
+    "./telescope_server_provider": {
+      "types": "./dist/providers/telescope_server_provider.d.ts",
+      "import": "./dist/providers/telescope_server_provider.js",
+      "default": "./dist/providers/telescope_server_provider.js"
+    },
+    "./configure": {
+      "types": "./dist/configure.d.ts",
+      "import": "./dist/configure.js",
+      "default": "./dist/configure.js"
+    },
+    "./commands": {
+      "types": "./dist/commands/main.d.ts",
+      "import": "./dist/commands/main.js",
+      "default": "./dist/commands/main.js"
+    },
+    "./doctor": {
+      "types": "./dist/src/doctor/index.d.ts",
+      "import": "./dist/src/doctor/index.js",
+      "default": "./dist/src/doctor/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "rm -rf dist .tsbuildinfo && tsc -p tsconfig.json && pnpm run copy:stubs",
+    "copy:stubs": "rm -rf dist/stubs && mkdir -p dist/stubs && cp -r stubs/config dist/stubs/",
+    "prepack": "pnpm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json --noEmit"
+  },
+  "peerDependencies": {
+    "@adonis-agora/authkit-client": ">=1.0.0-rc.7 <2.0.0",
+    "@adonis-agora/telescope": ">=1.0.0-rc.14 <2.0.0",
+    "@adonisjs/core": "^7.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@adonis-agora/authkit-client": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@adonis-agora/authkit-client": "1.0.0-rc.8",
+    "@adonis-agora/telescope": "1.0.0-rc.14",
+    "@adonisjs/assembler": "8.6.0",
+    "@adonisjs/core": "7.6.0",
+    "@types/node": "26.6.6",
+    "jose": "6.2.16",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
