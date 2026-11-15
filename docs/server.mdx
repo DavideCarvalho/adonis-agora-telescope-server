@@ -57,7 +57,9 @@ A verifier returns `{ partition, environment?, capabilities }` or `null`. Sendin
 | `413` | more entries or bytes than the limits allow |
 | `503` | Telescope is not running, or the issuer cannot be reached |
 
-A batch sent twice is stored once: entry ids already received from the same app are skipped.
+Entries keep the time the app recorded them; a time more than five minutes ahead of the server's
+clock is taken as now. A batch sent twice is stored once: each entry is stored as `<app>:<id>`,
+and an id the store already holds is skipped, even after a restart.
 
 ## CSRF
 

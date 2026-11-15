@@ -75,6 +75,10 @@ export default defineConfig({
 })
 ```
 
+Each entry keeps the time it was recorded in the app, so entries delivered after an outage
+appear where they happened in traces, Pulse and the entries list. A batch sent twice is stored
+once.
+
 Entries the server refuses as invalid are dropped, not retried. A `401`/`403` asks the token
 source for a fresh token and retries later.
 

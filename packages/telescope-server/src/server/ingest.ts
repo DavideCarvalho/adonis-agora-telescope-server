@@ -1,4 +1,4 @@
-import type { BatchOrigin, TelescopeStore } from '@adonis-agora/telescope';
+import type { BatchOrigin, RecordInput, TelescopeStore } from '@adonis-agora/telescope';
 import { type ResolvedIngestLimits, resolveIngestLimits } from '../define_config.js';
 import { runAsTelescopeWork } from '../tenant/self_scope.js';
 import {
@@ -39,6 +39,8 @@ export interface IngestHandlerOptions {
 
 const ORIGINS: readonly BatchOrigin[] = ['http', 'queue', 'schedule', 'cli', 'manual'];
 const TYPE_RE = /^[A-Za-z0-9_.:-]{1,64}$/;
+/** A sender's entry id: printable, short enough to namespace by app (`<app>:<id>`). */
+const ID_RE = /^[\x21-\x7e]{1,128}$/;
 /** Tags only the server sets: anything a sender puts there is dropped. */
 const RESERVED_TAG_RE = /^(app|env):/;
 
@@ -79,10 +81,14 @@ function normalize(
   durationMs: number | null;
   origin: BatchOrigin;
   traceId: string | null;
+  createdAt?: string;
 } | null {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const e = raw as Record<string, unknown>;
-  if (typeof e.id !== 'string' || e.id === '' || e.id.length > 128) return null;
+  if (typeof e.id !== 'string' || !ID_RE.test(e.id)) return null;
+  if (e.createdAt !== undefined && e.createdAt !== null && typeof e.createdAt !== 'string') {
+    return null;
+  }
   if (typeof e.type !== 'string' || !TYPE_RE.test(e.type)) return null;
   if (!isNullableString(e.familyHash, 512) || !isNullableString(e.traceId, 128)) return null;
   if (
@@ -121,6 +127,8 @@ function normalize(
     durationMs: (e.durationMs as number | null | undefined) ?? null,
     origin: ORIGINS.includes(e.origin as BatchOrigin) ? (e.origin as BatchOrigin) : 'manual',
     traceId: (e.traceId as string | null | undefined) ?? null,
+    // When the app recorded it. Telescope keeps it, taking a far-future or invalid one as now.
+    ...(typeof e.createdAt === 'string' ? { createdAt: e.createdAt } : {}),
   };
 }
 
@@ -199,7 +207,12 @@ export function createIngestHandler(options: IngestHandlerOptions) {
           result.duplicates += 1;
           continue;
         }
-        const { id: _id, ...input } = entry;
+        // Stored as `<app>:<id>`: the app's own id, which no other app can collide with. The store
+        // skips an id it already holds, so a retry is stored once even after a restart.
+        const input: RecordInput & { id: string; createdAt?: string } = {
+          ...entry,
+          id: `${verified.partition}:${entry.id}`,
+        };
         // Telescope's own work: nothing the write causes (its INSERT) is recorded again.
         await runAsTelescopeWork(() => store.record(input));
         recent.add(key);
