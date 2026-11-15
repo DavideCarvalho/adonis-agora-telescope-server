@@ -1,0 +1,17 @@
+packages:
+  - "packages/*"
+
+# pnpm >= 10 does not run a dependency's build script without explicit permission, and in CI it
+# ERRORS (ERR_PNPM_IGNORED_BUILDS) instead of warning -- the release would die in
+# `pnpm install --frozen-lockfile`. All of these compile or download a binary today.
+allowBuilds:
+  '@biomejs/biome': true
+  '@swc/core': true
+  esbuild: true
+  better-sqlite3: true
+
+# Packages published less than 24h ago are refused by pnpm 11+, which breaks a frozen install right
+# after a release. The Agora rc line is exempted the same way in every sibling repo.
+minimumReleaseAgeExclude:
+  - '@adonis-agora/authkit-client@1.0.0-rc.0 || 1.0.0-rc.7'
+  - '@adonis-agora/authkit-core@1.0.0-rc.0 || 1.0.0-rc.3'
