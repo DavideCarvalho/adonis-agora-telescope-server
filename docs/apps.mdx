@@ -1,0 +1,81 @@
+---
+title: The apps
+description: Send an app's Telescope entries to a telescope server, in the background.
+icon: Send
+---
+
+An app sends its entries with `topology: 'tenant'` and the `remoteStore()` driver.
+
+```ts title="config/telescope_server.ts"
+import env from '#start/env'
+import { authkitTenantToken } from '@adonis-agora/authkit-client'
+import { defineConfig } from '@adonis-agora/telescope-server'
+
+export default defineConfig({
+  topology: 'tenant',
+  tenant: {
+    url: env.get('TELESCOPE_SERVER_URL'), // https://telescope.example.com
+    partition: 'shop',
+    token: authkitTenantToken({
+      issuer: env.get('AUTHKIT_ISSUER'),
+      clientId: env.get('TELESCOPE_CLIENT_ID'),
+      clientSecret: env.get('TELESCOPE_CLIENT_SECRET'),
+      resource: 'urn:agora:telescope',
+    }),
+  },
+})
+```
+
+```ts title="config/telescope.ts"
+import { defineConfig } from '@adonis-agora/telescope'
+import { remoteStore } from '@adonis-agora/telescope-server'
+
+export default defineConfig({
+  store: 'central',
+  stores: { central: remoteStore() },
+})
+```
+
+- `url` is the server's origin. If the server changed its route prefix, give the full prefix
+  instead (`https://telescope.example.com/observability`).
+- `token` can be `authkitTenantToken(...)`, the app's shared secret
+  (`env.get('TELESCOPE_SECRET')`), or any `() => Promise<string>`.
+- `partition` names the app. With authkit the token decides the name and this value only labels
+  the request. With a shared secret it picks which secret to check.
+
+## Keeping a local copy
+
+With `remoteStore()` alone, the app's own console has nothing to show. `tee` keeps every entry in
+a local store as well, and the app's console reads from it:
+
+```ts title="config/telescope.ts"
+stores: {
+  central: remoteStore({ tee: storage.memory({ maxEntries: 500 }) }),
+},
+```
+
+## Buffering and retries
+
+Recording never waits on the network. Entries go into a buffer that is sent every second, in
+batches. If the server is unreachable, sends are retried with a growing delay. When the buffer is
+full, the oldest entries are dropped and counted. At shutdown the provider sends what is left.
+
+```ts title="config/telescope_server.ts"
+export default defineConfig({
+  topology: 'tenant',
+  tenant: { url, partition, token },
+  buffer: {
+    maxEntries: 10_000,        // kept while the server is down
+    batchSize: 200,            // entries per request
+    maxBatchBytes: 512_000,    // bytes per request
+    flushIntervalMs: 1000,
+    timeoutMs: 10_000,
+    retry: { baseMs: 1000, maxMs: 60_000 },
+  },
+})
+```
+
+Entries the server refuses as invalid are dropped, not retried. A `401`/`403` asks the token
+source for a fresh token and retries later.
+
+Redaction, sampling and every other Telescope setting apply in the app before an entry is sent.

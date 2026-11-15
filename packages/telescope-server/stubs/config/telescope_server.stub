@@ -1,0 +1,23 @@
+{{{
+  exports({ to: app.configPath('telescope_server.ts') })
+}}}
+import env from '#start/env'
+import { defineConfig } from '@adonis-agora/telescope-server'
+
+/**
+ * This app sends its telescope entries to a telescope server. The server tags them with the app
+ * name from the token, and its console shows them per app.
+ *
+ * For the server itself:
+ *   topology: 'control-plane',
+ *   verifyTenant: authkitTenantVerifier({ issuer, resource: 'urn:agora:telescope' }),
+ */
+export default defineConfig({
+  topology: 'tenant',
+  tenant: {
+    url: env.get('TELESCOPE_SERVER_URL', 'http://localhost:3334'),
+    partition: env.get('APP_NAME', 'app'),
+    // `authkitTenantToken({ issuer, clientId, clientSecret, resource: 'urn:agora:telescope' })` with authkit.
+    token: env.get('TELESCOPE_SERVER_TOKEN', 'dev-secret'),
+  },
+})

@@ -1,0 +1,4 @@
+{
+  "title": "Telescope server",
+  "pages": ["index", "server", "apps", "commands"]
+}

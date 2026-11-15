@@ -1,0 +1,43 @@
+---
+title: Commands and health checks
+description: Check that an app reaches its server, and which apps a server has heard from.
+icon: Terminal
+---
+
+## `telescope-server:status`
+
+On an app, it asks the server who it takes the app's token for:
+
+```sh
+node ace telescope-server:status
+# Server: https://telescope.example.com/_telescope/v1
+# App:    shop
+# ✔ The server accepts this app as "shop" (production).
+```
+
+On the server, it lists the apps it has entries for:
+
+```sh
+node ace telescope-server:status
+# Ingest: POST /_telescope/v1/ingest
+# ┌─────────┬─────────┐
+# │ App     │ Entries │
+# ├─────────┼─────────┤
+# │ shop    │ 1204    │
+# │ billing │ 311     │
+# └─────────┴─────────┘
+```
+
+`--json` prints one object. The exit code is `1` when the server refuses the app, or when the
+server has no Telescope store.
+
+## `agora:doctor`
+
+`node ace agora:doctor` (or `node ace telescope-server:doctor`) includes these checks:
+
+| Check | What it looks at |
+| --- | --- |
+| `telescope-server.config` | the topology, and where entries go or come in |
+| `telescope-server.store` | server: Telescope is running here. App: `config/telescope.ts` uses `remoteStore()` |
+| `telescope-server.csrf` | server: Shield CSRF lets `POST <path>/ingest` through |
+| `telescope-server.reachable` | app, with `--deep`: the server accepts this app's token |
