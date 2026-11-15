@@ -75,7 +75,7 @@
   },
   "devDependencies": {
     "@adonis-agora/authkit-client": "1.0.0-rc.8",
-    "@adonis-agora/telescope": "1.0.0-rc.13",
+    "@adonis-agora/telescope": "1.0.0-rc.14",
     "@adonisjs/assembler": "8.6.0",
     "@adonisjs/core": "7.6.0",
     "@types/node": "26.6.6",

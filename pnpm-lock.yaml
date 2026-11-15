@@ -203,8 +203,8 @@ importers:
         specifier: 1.0.0-rc.8
         version: 1.0.0-rc.8(@adonisjs/auth@10.1.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1))(@adonisjs/session@8.3.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1))))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1))(@adonisjs/session@8.3.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1)))
       '@adonis-agora/telescope':
-        specifier: 1.0.0-rc.13
-        version: 1.0.0-rc.13(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1))
+        specifier: 1.0.0-rc.14
+        version: 1.0.0-rc.14(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1))
       '@adonisjs/assembler':
         specifier: 8.6.0
         version: 8.6.0(typescript@7.0.2)
@@ -255,8 +255,8 @@ packages:
       '@adonisjs/lucid':
         optional: true
 
-  '@adonis-agora/telescope@1.0.0-rc.13':
-    resolution: {integrity: sha512-/kzDxc+BQWaQo3G7UPWwgfIsnsmVdzPV/bLUgCVVnTP8CvEAFhJ1ORfy5R/ItDdcsOasU2XGzWrW0J+GaqJdzg==}
+  '@adonis-agora/telescope@1.0.0-rc.14':
+    resolution: {integrity: sha512-dKR8Salkymi7uvgx7YoFMq1fizlrgJVFUrYmJ6j0RUoFeJuV8VCqHj2mPamsnSN48+qSeWPL1k8EmPmvGv/QIg==}
     engines: {node: '>=24'}
     peerDependencies:
       '@adonisjs/cache': ^2.1.0
@@ -2465,7 +2465,7 @@ snapshots:
     dependencies:
       '@adonisjs/core': 7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1)
 
-  '@adonis-agora/telescope@1.0.0-rc.13(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1))':
+  '@adonis-agora/telescope@1.0.0-rc.14(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1))':
     dependencies:
       '@adonis-agora/filter': 1.0.0-rc.6(@adonisjs/core@7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1))
       '@adonisjs/core': 7.6.0(@adonisjs/assembler@8.6.0(typescript@7.0.2))(supports-color@10.2.2)(youch@4.1.1)
